@@ -42,9 +42,9 @@ async def analyze_sheet(file: UploadFile = File(...)):
         }
         """
         
-        # [여기 집중!] 서버가 절대 딴소리 못하게 2.0-flash로 고정했습니다.
+        # [여기 집중!] 서버가 절대 딴소리 못하게 1.5-flash로 고정했습니다.
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-1.5-flash',
             contents=[img, prompt]
         )
         
@@ -54,6 +54,7 @@ async def analyze_sheet(file: UploadFile = File(...)):
     except Exception as e:
         print(f"Error detail: {str(e)}")
         raise HTTPException(status_code=500, detail="악보 분석 중 오류가 발생했습니다.")
+
 
 
 
