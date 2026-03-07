@@ -8,7 +8,6 @@ from PIL import Image
 
 app = FastAPI()
 
-# 디자인 지침에 따라 모든 접속을 허용합니다. [cite: 2026-02-11]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,28 +18,22 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"message": "노엘의 찬양노트 1.5-Flash 서버 가동 중!"}
+    return {"message": "노엘의 찬양노트 US 서버 정상 가동 중!"}
 
-# 정식 v1 채널 설정을 유지합니다. [cite: 2026-02-11]
-client = genai.Client(
-    api_key=os.getenv("APP_AI_KEY"),
-    http_options={'api_version': 'v1'}
-)
+# 가장 안정적인 기본 설정으로 돌아갑니다.
+client = genai.Client(api_key=os.getenv("APP_AI_KEY"))
 
 @app.post("/analyze-sheet")
 async def analyze_sheet(file: UploadFile = File(...)):
-    print(">>> [LOG] 악보 분석을 다시 시작합니다 (1.5-Flash)!")
+    print(">>> [LOG] 악보 분석 시도 (2.0-Flash)")
     try:
         content = await file.read()
         img = Image.open(io.BytesIO(content))
         
-        # 모델을 1.5-flash로 변경하여 할당량 문제를 해결합니다.
+        # 아까 구글과 연결에 성공했던 그 모델입니다.
         response = client.models.generate_content(
-            model='gemini-1.5-flash', 
-            contents=[
-                img, 
-                "이 악보를 분석해서 {melody: [{note: 'C4', duration: '4n', time: '0:0:0'}]} 형식의 JSON 데이터만 출력해줘. 다른 텍스트는 제외해."
-            ]
+            model='gemini-2.0-flash', 
+            contents=[img, "이 악보를 분석해서 {melody: [{note: 'C4', duration: '4n', time: '0:0:0'}]} 형식의 JSON 데이터만 출력해줘."]
         )
         
         clean_json = response.text.replace('```json', '').replace('```', '').strip()
@@ -49,5 +42,6 @@ async def analyze_sheet(file: UploadFile = File(...)):
 
     except Exception as e:
         print(f">>> [ERROR] 발생 상세: {str(e)}")
+        # 에러 메시지를 프론트엔드로 보내서 확인합니다.
         raise HTTPException(status_code=500, detail=str(e))
 
