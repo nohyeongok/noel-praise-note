@@ -8,7 +8,6 @@ from PIL import Image
 
 app = FastAPI()
 
-# 목사님의 UI 지침(중앙 정렬 및 모바일 최적화)을 지원하기 위한 CORS 설정입니다. [cite: 2026-02-11]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,21 +18,21 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"message": "노엘의 찬양노트 유료 등급 서버 가동 중!"}
+    return {"message": "노엘의 찬양노트 'Tier 1' 고속 서버 가동 중!"}
 
-# 결제 계정이 연결된 API 키를 사용하여 전용 대역폭을 확보합니다. [cite: 2026-02-11]
+# 목사님의 새로운 'Tier 1' API 키가 적용된 클라이언트입니다.
 client = genai.Client(api_key=os.getenv("APP_AI_KEY"))
 
 @app.post("/analyze-sheet")
 async def analyze_sheet(file: UploadFile = File(...)):
-    print(">>> [LOG] 악보 분석 요청 수신 (유료 모드)")
+    print(">>> [LOG] 악보 분석 요청 수신 (Tier 1 고속 모드)")
     try:
         content = await file.read()
         img = Image.open(io.BytesIO(content))
         
-        # 429 에러 없이 가장 빠르게 응답하는 2.0-flash 모델을 사용합니다. [cite: 2026-02-11]
+        # 404 에러를 방지하기 위해 가장 안정적인 'gemini-1.5-flash'를 사용합니다. [cite: 2026-02-11]
         response = client.models.generate_content(
-            model='gemini-2.0-flash', 
+            model='gemini-1.5-flash', 
             contents=[
                 img, 
                 "이 악보를 분석해서 {melody: [{note: 'C4', duration: '4n', time: '0:0:0'}]} 형식의 JSON 데이터만 출력해줘."
@@ -45,5 +44,6 @@ async def analyze_sheet(file: UploadFile = File(...)):
         return json.loads(clean_json)
 
     except Exception as e:
-        print(f">>> [ERROR] 발생 상세: {str(e)}")
+        # 에러 발생 시 로그에 상세 정보를 남겨 목사님을 돕겠습니다. [cite: 2026-03-09]
+        print(f">>> [ERROR] 상세: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
