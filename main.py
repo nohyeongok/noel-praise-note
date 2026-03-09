@@ -18,19 +18,19 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"message": "노엘의 찬양노트 'Tier 1' 고속 서버 가동 중!"}
+    return {"message": "노엘의 찬양노트 'Tier 1' 최종 안정화 서버 가동 중!"}
 
-# 목사님의 새로운 'Tier 1' API 키가 적용된 클라이언트입니다.
+# 목사님의 'Tier 1' API 키가 적용된 클라이언트입니다.
 client = genai.Client(api_key=os.getenv("APP_AI_KEY"))
 
 @app.post("/analyze-sheet")
 async def analyze_sheet(file: UploadFile = File(...)):
-    print(">>> [LOG] 악보 분석 요청 수신 (Tier 1 고속 모드)")
+    print(">>> [LOG] 악보 분석 요청 수신 (Tier 1 최종 모드)")
     try:
         content = await file.read()
         img = Image.open(io.BytesIO(content))
         
-        # 404 에러를 방지하기 위해 가장 안정적인 'gemini-1.5-flash'를 사용합니다. [cite: 2026-02-11]
+        # 유료 등급에서 가장 안정적으로 작동하는 모델명입니다. [cite: 2026-02-11]
         response = client.models.generate_content(
             model='gemini-1.5-flash', 
             contents=[
