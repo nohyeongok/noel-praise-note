@@ -18,7 +18,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+# API 키가 설정되어 있는지 확인하고 클라이언트를 실행합니다.
+api_key = os.environ.get("GOOGLE_API_KEY")
+if not api_key:
+    print(">>> [WARNING] GOOGLE_API_KEY가 설정되지 않았습니다. Render 환경 변수를 확인하세요.")
+    client = None
+else:
+    client = genai.Client(api_key=api_key)
 # 3. 제미나이 AI 클라이언트 준비
 client = genai.Client()
 
@@ -122,4 +128,5 @@ async def analyze_xml(file: UploadFile = File(...)):
     except Exception as e:
         print(f">>> [ERROR] MusicXML 파싱 실패: {str(e)}")
         raise HTTPException(status_code=500, detail=f"XML 분석 오류: {str(e)}")
+
 
