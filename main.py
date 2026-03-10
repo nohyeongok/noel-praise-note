@@ -7,35 +7,40 @@ from google import genai
 from google.genai import types
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
+# 웹 브라우저 통신 허용 설정
+app.add_middleware(
+    CORSMiddleware, 
+    allow_origins=["*"], 
+    allow_credentials=True, 
+    allow_methods=["*"], 
+    allow_headers=["*"]
+)
+
+# Render 환경 변수에 설정한 API 키를 읽어옵니다.
 api_key = os.environ.get("GOOGLE_API_KEY")
 client = genai.Client(api_key=api_key) if api_key else None
 
+# =========================================================
+# [기능 1] 이미지 악보 분석 (모델 이름 수정됨)
+# =========================================================
 @app.post("/analyze-sheet")
 async def analyze_sheet(file: UploadFile = File(...)):
-    if not client: raise HTTPException(status_code=500, detail="API Key missing")
+    if not client: 
+        raise HTTPException(status_code=500, detail="API Key missing on server.")
     try:
         content = await file.read()
         img = Image.open(io.BytesIO(content)).convert('RGB')
         buffer = io.BytesIO()
         img.save(buffer, format="JPEG")
         
-        # 🚀 AI에게 더 구체적으로 '음표 인식' 사역을 명령합니다. [cite: 2026-03-11]
-        prompt = """
-        너는 전 세계 모든 찬양 악보를 읽을 수 있는 AI 음악 전문가야. 
-        이 악보 이미지를 보고 다음 규칙에 따라 멜로디를 추출해줘:
-        1. 가사와 코드는 무시하고, 오직 오선지 위의 '음표' 위치만 찾아.
-        2. 높은음자리표를 기준으로 각 음표의 음정(C4, D4 등)을 판별해.
-        3. 음표의 모양에 따라 박자(4분음표=4n, 8분음표=8n)를 결정해.
-        4. 반드시 'melody'라는 키를 가진 JSON 형식으로만 대답해.
-        """
-
+        # 🚀 모델 명칭을 'gemini-2.0-flash'로 수정하여 404 에러를 해결합니다. [cite: 2026-03-11]
         response = client.models.generate_content(
-            model='gemini-2.0-flash-001',
+            model='gemini-2.0-flash', 
             contents=[
                 types.Part.from_bytes(data=buffer.getvalue(), mime_type='image/jpeg'),
-                prompt
+                "이 악보의 멜로디를 분석해서 연주 가능한 JSON 데이터로 변환해줘. "
+                "반드시 melody라는 키 안에 note, duration, time 정보를 포함해야 해."
             ],
             config=types.GenerateContentConfig(
                 response_mime_type='application/json',
@@ -59,16 +64,17 @@ async def analyze_sheet(file: UploadFile = File(...)):
                 }
             )
         )
-        # AI의 대답을 로그에 남겨 추후 분석을 돕습니다. [cite: 2026-03-11]
-        print(f">>> [LOG] AI 분석 결과: {response.text}")
+        # AI가 분석한 데이터 반환
         return response.parsed
     except Exception as e:
         print(f">>> [ERROR] 분석 실패: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# =========================================================
+# [기능 2] MusicXML 분석 (기존 로직 유지)
+# =========================================================
 @app.post("/analyze-xml")
 async def analyze_xml(file: UploadFile = File(...)):
-    # MusicXML 분석 로직 유지 [cite: 2026-03-11]
     try:
         content = await file.read()
         root = ET.fromstring(content)
@@ -87,8 +93,4 @@ async def analyze_xml(file: UploadFile = File(...)):
                     current_time += 1.0
         return {"melody": melody_data}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-
-
+        raise HTTPException(status_code=500, detail=f"XML 분석 오류: {str(e)}")
