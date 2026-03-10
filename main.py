@@ -14,9 +14,9 @@ client = genai.Client(api_key=api_key) if api_key else None
 
 @app.get("/")
 async def root():
-    return {"message": "노엘 뮤직 AI 서버 가동 중!"}
+    return {"message": "노엘 뮤직 AI 서버가 정상 가동 중입니다!"}
 
-# [기능 1] 이미지 악보 분석 (모델명 최적화)
+# [기능 1] 이미지 악보 분석 (main1.php 용) - 모델명 최적화
 @app.post("/analyze-sheet")
 async def analyze_sheet(file: UploadFile = File(...)):
     if not client: raise HTTPException(status_code=500, detail="API Key missing")
@@ -26,9 +26,9 @@ async def analyze_sheet(file: UploadFile = File(...)):
         buffer = io.BytesIO()
         img.save(buffer, format="JPEG")
         
-        # 🚀 모델명을 'gemini-1.5-flash-latest'로 지정하여 인식률을 높입니다.
+        # 모델명을 가장 범용적인 버전으로 수정하여 404 에러를 방지합니다.
         response = client.models.generate_content(
-            model='gemini-1.5-flash-latest',
+            model='gemini-2.0-flash',
             contents=[
                 types.Part.from_bytes(data=buffer.getvalue(), mime_type='image/jpeg'),
                 "이 악보의 멜로디를 분석해서 JSON 데이터로 변환해줘. melody 키 안에 note, duration, time을 넣어줘."
@@ -40,45 +40,52 @@ async def analyze_sheet(file: UploadFile = File(...)):
         print(f">>> [ERROR] 분석 실패: {str(e)}")
         return {"melody": []}
 
-# [기능 2] MusicXML 정밀 분석 (박자 100% 동기화)
+# [기능 2] MusicXML 정밀 분석 (main5.html 용 - 박자 속도 100% 동기화)
 @app.post("/analyze-xml")
 async def analyze_xml(file: UploadFile = File(...)):
     try:
         content = await file.read()
         root = ET.fromstring(content)
         melody_data = []
+        
+        # XML 박자의 기준점(divisions)을 찾습니다.
         divisions = 1
         div_node = root.find('.//divisions')
         if div_node is not None: divisions = int(div_node.text)
         
+        # 💡 BPM 120 기준으로 박자 속도를 정밀하게 계산합니다. (1박자 = 0.5초)
+        bpm = 120
+        seconds_per_beat = 60 / bpm 
         current_time = 0.0
+        
         for measure in root.findall('.//measure'):
             for note in measure.findall('note'):
                 dur_node = note.find('duration')
                 if dur_node is None: continue
                 dur_val = int(dur_node.text)
                 
-                # 💡 음표의 실제 길이 계산 (박자가 어긋나지 않게 함)
-                beat_val = dur_val / divisions
-                tone_dur = "4n"
-                if beat_val >= 4: tone_dur = "1n"
-                elif beat_val >= 2: tone_dur = "2n"
-                elif beat_val >= 1: tone_dur = "4n"
-                elif beat_val >= 0.5: tone_dur = "8n"
-                else: tone_dur = "16n"
-
+                # 실제 연주 시간 계산: (음표길이 / 기준박자) * 초당박수
+                note_duration_seconds = (dur_val / divisions) * seconds_per_beat
+                
                 if note.find('rest') is not None:
-                    current_time += beat_val
+                    current_time += note_duration_seconds
                     continue
                 
                 pitch = note.find('pitch')
                 if pitch:
                     note_name = f"{pitch.find('step').text}{pitch.find('octave').text}"
-                    melody_data.append({"note": note_name, "duration": tone_dur, "time": f"+{current_time}"})
-                    current_time += beat_val
+                    melody_data.append({
+                        "note": note_name,
+                        "duration": "4n",
+                        "time": f"+{current_time}"
+                    })
+                    current_time += note_duration_seconds
+                    
         return {"melody": melody_data}
     except Exception as e:
-        return {"melody": []}
+        print(f">>> [ERROR] XML 분석 실패: {str(e)}")
+        return {"melody": []}[]}
+
 
 
 
