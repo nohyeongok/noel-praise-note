@@ -9,12 +9,13 @@ from google.genai import types
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
+# 유료 계정의 API 키를 사용합니다.
 api_key = os.environ.get("GOOGLE_API_KEY")
 client = genai.Client(api_key=api_key) if api_key else None
 
 @app.get("/")
 async def root():
-    return {"message": "노엘 뮤직 AI 서버 가동 중!"}
+    return {"message": "노엘 뮤직 AI 프로 서버 가동 중!"}
 
 @app.post("/analyze-sheet")
 async def analyze_sheet(file: UploadFile = File(...)):
@@ -25,12 +26,12 @@ async def analyze_sheet(file: UploadFile = File(...)):
         buffer = io.BytesIO()
         img.save(buffer, format="JPEG")
         
-        # 🚀 모델명을 gemini-2.0-flash로 변경하여 404 에러를 해결합니다.
+        # 🚀 404 에러 방지를 위해 가장 안정적인 모델명을 사용합니다.
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-1.5-flash',
             contents=[
                 types.Part.from_bytes(data=buffer.getvalue(), mime_type='image/jpeg'),
-                "이 악보의 멜로디를 분석해서 JSON 데이터로 변환해줘. melody 키 안에 note, duration, time을 넣어줘."
+                "이 악보의 멜로디를 정밀 분석해서 JSON으로 변환해줘. melody 키 안에 note, duration, time 정보를 포함해."
             ],
             config=types.GenerateContentConfig(response_mime_type='application/json')
         )
@@ -49,7 +50,7 @@ async def analyze_xml(file: UploadFile = File(...)):
         div_node = root.find('.//divisions')
         if div_node is not None: divisions = int(div_node.text)
         
-        seconds_per_beat = 60 / 120 
+        seconds_per_beat = 60 / 120 # BPM 120 기준
         current_time = 0.0
         for measure in root.findall('.//measure'):
             for note in measure.findall('note'):
@@ -68,3 +69,4 @@ async def analyze_xml(file: UploadFile = File(...)):
         return {"melody": melody_data}
     except Exception as e:
         return {"melody": []}
+
