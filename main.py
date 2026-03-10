@@ -19,26 +19,23 @@ async def root():
 # [기능 1] 이미지 악보 분석 (main1.php 용) - 모델명 최적화
 @app.post("/analyze-sheet")
 async def analyze_sheet(file: UploadFile = File(...)):
-    if not client: raise HTTPException(status_code=500, detail="API Key missing")
     try:
-        content = await file.read()
-        img = Image.open(io.BytesIO(content)).convert('RGB')
-        buffer = io.BytesIO()
-        img.save(buffer, format="JPEG")
-        
-        # 모델명을 가장 범용적인 버전으로 수정하여 404 에러를 방지합니다.
+        # ... 이미지 처리 로직 ...
+        prompt = """
+        너는 프로 음악가이자 악보 해독 전문가야. 
+        1. 이미지에서 오선지의 조표(Sharp/Flat)와 박자표를 먼저 확인해.
+        2. 모든 음표를 마디 단위로 정밀 스캔하여 절대적인 음높이와 길이를 계산해.
+        3. 결과는 반드시 연주가 가능한 완벽한 JSON 형식이어야 하며, 
+           단 하나의 음표도 누락하지 마.
+        """
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
-            contents=[
-                types.Part.from_bytes(data=buffer.getvalue(), mime_type='image/jpeg'),
-                "이 악보의 멜로디를 분석해서 JSON 데이터로 변환해줘. melody 키 안에 note, duration, time을 넣어줘."
-            ],
+            model='gemini-1.5-pro', # 퀄리티를 위해 Pro 모델 사용
+            contents=[img_to_send, prompt],
             config=types.GenerateContentConfig(response_mime_type='application/json')
         )
         return response.parsed
     except Exception as e:
-        print(f">>> [ERROR] 분석 실패: {str(e)}")
-        return {"melody": []}
+        return {"melody": [], "error": str(e)}
 
 # [기능 2] MusicXML 정밀 분석 (main5.html 용 - 박자 속도 100% 동기화)
 @app.post("/analyze-xml")
@@ -85,6 +82,7 @@ async def analyze_xml(file: UploadFile = File(...)):
     except Exception as e:
         print(f">>> [ERROR] XML 분석 실패: {str(e)}")
         return {"melody": []}[]}
+
 
 
 
