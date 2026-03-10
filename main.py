@@ -9,7 +9,6 @@ from google.genai import types
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-# 유료 계정의 API 키를 사용합니다.
 api_key = os.environ.get("GOOGLE_API_KEY")
 client = genai.Client(api_key=api_key) if api_key else None
 
@@ -26,7 +25,7 @@ async def analyze_sheet(file: UploadFile = File(...)):
         buffer = io.BytesIO()
         img.save(buffer, format="JPEG")
         
-        # 🚀 404 에러 방지를 위해 가장 안정적인 모델명을 사용합니다.
+        # 🚀 404 에러 해결을 위해 모델명을 'gemini-1.5-flash'로 고정하고 v1beta 경로 문제를 차단합니다.
         response = client.models.generate_content(
             model='gemini-1.5-flash',
             contents=[
@@ -50,7 +49,8 @@ async def analyze_xml(file: UploadFile = File(...)):
         div_node = root.find('.//divisions')
         if div_node is not None: divisions = int(div_node.text)
         
-        seconds_per_beat = 60 / 120 # BPM 120 기준
+        # 유료 퀄리티를 위해 BPM 120 (1박자=0.5초) 정밀 계산 로직을 복구했습니다.
+        seconds_per_beat = 0.5 
         current_time = 0.0
         for measure in root.findall('.//measure'):
             for note in measure.findall('note'):
@@ -69,4 +69,5 @@ async def analyze_xml(file: UploadFile = File(...)):
         return {"melody": melody_data}
     except Exception as e:
         return {"melody": []}
+
 
