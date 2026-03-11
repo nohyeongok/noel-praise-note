@@ -57,10 +57,11 @@ async def analyze_xml(file: UploadFile = File(...), bpm: float = None): # 💡 b
         melody_data = []
         
         # 💡 로직 우선순위: 1.사용자 선택값 -> 2.악보 내부값 -> 3.기본값(142)
-        final_bpm = 142.0 
-        
-        if bpm and bpm > 0:
-            final_bpm = bpm
+        final_bpm = 142.0       
+        if bpm is not None:
+    # 💡 프론트엔드 설정에 맞춰 최소값을 60으로 제한합니다.
+    final_bpm = max(60.0, bpm)
+    
             print(f">>> [LOG] 사용자 지정 BPM 적용: {final_bpm}")
         else:
             tempo_node = root.find('.//per-minute')
@@ -111,3 +112,4 @@ async def analyze_xml(file: UploadFile = File(...), bpm: float = None): # 💡 b
         return {"melody": melody_data, "applied_bpm": final_bpm}
     except Exception as e:
         return {"melody": []}
+
