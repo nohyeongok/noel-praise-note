@@ -23,10 +23,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 2. Gemini AI 설정 (모델명을 -latest로 수정하여 404 에러 방지)
+# 2. Gemini AI 설정 (목사님이 성공하셨던 'gemini-2.5-flash' 모델 적용)
 GENAI_API_KEY = os.getenv("GENAI_API_KEY")
 genai.configure(api_key=GENAI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash-latest')
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 # 3. 구속사적 관점 시스템 프롬프트
 SYSTEM_PROMPT = """
@@ -60,4 +60,4 @@ async def ask_bible_ai(request: ChatRequest):
 
 @app.get("/")
 async def root():
-    return {"status": "Noel Bible AI is online"}
+    return {"status": "Noel Bible AI is online with Gemini 2.5 Flash"}
