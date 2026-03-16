@@ -73,25 +73,24 @@ async def ask_bible_ai(request: ChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 # [기능 2] 게시판 저장하기 (PHP 다리를 통해 닷홈 DB로 전송)
-@app.post("/save")
+@@app.post("/save")
 async def save_to_db(req: SaveRequest):
     try:
-        # 파이썬이 직접 DB에 안 가고, 닷홈에 있는 PHP 파일을 호출합니다.
+        # 닷홈 PHP 호출
         response = requests.post(PHP_BRIDGE_URL, json=req.dict(), timeout=10)
-        return response.json()
-    except Exception as e:
-        print(f"🚨 [저장 에러]: {str(e)}")
-        raise HTTPException(status_code=500, detail="닷홈 DB 연결 다리에 실패했습니다.")
+        
+        # ✨ 핵심 추가: 닷홈이 뭐라고 대답했는지 로그에 무조건 찍습니다.
+        print(f"📡 닷홈 대답 상태코드: {response.status_code}")
+        print(f"📡 닷홈 대답 내용: {response.text}")
 
-# [기능 3] 게시판 목록 가져오기 (PHP 다리로부터 수신)
-@app.get("/list")
-async def get_list():
-    try:
-        response = requests.get(PHP_BRIDGE_URL, timeout=10)
+        # 정상적인 JSON 응답인 경우에만 처리
         return response.json()
+        
     except Exception as e:
-        print(f"🚨 [목록 에러]: {str(e)}")
-        raise HTTPException(status_code=500, detail="게시판 목록을 불러오지 못했습니다.")
+        # 에러 내용을 더 구체적으로 찍어줍니다.
+        error_msg = f"🚨 [저장 에러]: {str(e)}"
+        print(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
 
 @app.get("/")
 async def root():
